@@ -21,7 +21,11 @@
 // THE CODE BELOW IS INCOMPLETE AND HAS PROBLEMS
 // FOR EXAMPLE, IT IS MISSING THE NECESSARY EXCEPTION HANDLING
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.security.KeyStore;
 import javax.net.ServerSocketFactory;
 import javax.net.ssl.KeyManagerFactory;
@@ -32,8 +36,7 @@ import javax.net.ssl.SSLSocket;
 
 public class MyTLSFileServer {
 
-   private static ServerSocketFactory getSSF()
-   {
+   private static ServerSocketFactory getSSF() throws Exception{
       // Get 
       //    an SSL Context that speaks some version of TLS, 
       //    a KeyManager that can hold certs in X.509 format,  
@@ -42,14 +45,17 @@ public class MyTLSFileServer {
       KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
       KeyStore ks = KeyStore.getInstance("JKS");
 
+      //Declare a fileinputstream
+      FileInputStream keyStoreFile = new FileInputStream("server.jks");
+
       // Store the passphrase to unlock the JKS file.   
       // INSECURE! DON'T DO IT.
-      char[] passphrase = "<whatever>".toCharArray();
+      char[] passphrase = "user_like_them".toCharArray();
 
       // Load the keystore file. The passphrase is   
       // an optional parameter to allow for integrity   
       // checking of the keystore. Could be null   
-      ks.load(new FileInputStream("server.jks"), passphrase);
+      ks.load(keyStoreFile, passphrase);
 
       // Init the KeyManagerFactory with a source   
       // of key material. The passphrase is necessary   
@@ -65,15 +71,36 @@ public class MyTLSFileServer {
       return ssf;
    }
 
-   static void main(String args[]) 
-   { 
-      // use the getSSF method to get a  SSLServerSocketFactory and 
-      // create our  SSLServerSocket, bound to specified port  
-      ServerSocketFactory ssf = getSSF(); 
-      SSLServerSocket ss =  (SSLServerSocket) ssf.createServerSocket(<port>); 
-      String EnabledProtocols[] = {"TLSv1.2", "TLSv1.3"}; 
-      ss.setEnabledProtocols(EnabledProtocols); 
-      SSLSocket s = (SSLSocket)ss.accept();
+   public static void main(String args[]){ 
+      try {
+         // use the getSSF method to get a  SSLServerSocketFactory and 
+         // create our  SSLServerSocket, bound to specified port  
+         ServerSocketFactory ssf = getSSF(); 
+         SSLServerSocket ss =  (SSLServerSocket) ssf.createServerSocket(50202); 
+         String EnabledProtocols[] = {"TLSv1.2", "TLSv1.3"}; 
+         ss.setEnabledProtocols(EnabledProtocols); 
+         
+         System.out.println("Server is listening on port 50202...");
+
+         //Accept an incoming connection
+         SSLSocket s = (SSLSocket)ss.accept();
+         
+         //Force TLS handshake
+         BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+         PrintWriter out = new PrintWriter(new OutputStreamWriter(s.getOutputStream()));
+
+         String line = in.readLine();
+         System.out.println("Received: " + line);
+         out.println("Hello, TLS Client!!!");
+
+         out.flush();
+         in.close();
+         out.close();
+         s.close();
+         ss.close();
+      } catch (Exception e) {
+         e.printStackTrace();
+      }
    }
 }
 

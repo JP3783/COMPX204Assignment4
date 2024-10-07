@@ -8,8 +8,15 @@
 // FOR EXAMPLE, IT IS MISSING THE NECESSARY EXCEPTION HANDLING
 
 
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.security.cert.X509Certificate;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
@@ -17,38 +24,60 @@ import javax.naming.ldap.Rdn;
 public class MyTLSFileClient {
   public static void main(String args[])
   {
-    SSLSocketFactory factory = (SSLSocketFactory)SSLSocketFactory.getDefault();
-    SSLSocket socket = (SSLSocket)factory.createSocket(<host>, <port>);
+    //The server's hostname and port
+    String host = "lab-rg06-05.cms.waikato.ac.nz";
+    int port = 50202;
 
-    // set HTTPS-style checking of HostName _before_ 
-    // the handshake
-    SSLParameters params = new SSLParameters();
-    params.setEndpointIdentificationAlgorithm("HTTPS");
-    socket.setSSLParameters(params);
+    try {
+      SSLSocketFactory factory = (SSLSocketFactory)SSLSocketFactory.getDefault();
+      SSLSocket socket = (SSLSocket)factory.createSocket(host, port);
 
-    socket.startHandshake(); // explicitly starting the TLS handshake
+      // set HTTPS-style checking of HostName _before_ 
+      // the handshake
+      SSLParameters params = new SSLParameters();
+      params.setEndpointIdentificationAlgorithm("HTTPS"); //Enables hostname validation
+      socket.setSSLParameters(params);
 
-    // at this point, can use getInputStream and 
-    // getOutputStream methods as you would in a regular Socket
+      socket.startHandshake(); // explicitly starting the TLS handshake
 
-    // get the X509Certificate for this session
-    SSLSession session = socket.getSession();
-    X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0];
+      //Perform I/O after the handshake (input/output)
+      try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+          out.println("Hello, TLS Server!!!");
+          String response = in.readLine();
+          System.out.println("Received from server: " + response);
+        }
 
-    // extract the CommonName, and then compare
-    getCommonName(cert);
+      // get the X509Certificate for this session
+      SSLSession session = socket.getSession();
+      X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0];
+
+      // extract the CommonName, and then compare
+      String serverCN = getCommonName(cert);
+      System.out.println("Server CN: " + serverCN);
+
+      if (!host.equalsIgnoreCase(serverCN)) {
+        throw new SSLException("Hostname verification failed!");
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
-  String getCommonName(X509Certificate cert)
-  {
-    String name = cert.getSubjectX500Principal().getName();
-    LdapName ln = new LdapName(name);
+  public static String getCommonName(X509Certificate cert) throws Exception{
+    //Declare variables
     String cn = null;
-    
-    // Rdn: Relative Distinguished Name
-    for(Rdn rdn : ln.getRdns()) 
-      if("CN".equalsIgnoreCase(rdn.getType()))
-        cn = rdn.getValue().toString();
+    try {
+      String name = cert.getSubjectX500Principal().getName();
+      LdapName ln = new LdapName(name);
+      // Rdn: Relative Distinguished Name
+      for(Rdn rdn : ln.getRdns()) 
+        if("CN".equalsIgnoreCase(rdn.getType()))
+          cn = rdn.getValue().toString();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    //Return the string
     return cn;
   }
 }
