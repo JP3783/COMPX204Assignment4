@@ -24,9 +24,14 @@ import javax.naming.ldap.Rdn;
 public class MyTLSFileClient {
   public static void main(String args[])
   {
-    //The server's hostname and port
-    String host = "lab-rg06-05.cms.waikato.ac.nz";
-    int port = 50202;
+    if(args.length != 2){
+      System.out.println("Usage = java MyTLSFileClient <hostname> <portnumber> <filename>");
+      return;
+    }
+
+    //The server's hostname and port "lab-rg06-05.cms.waikato.ac.nz"   50202
+    String host = args[0];
+    int port = Integer.parseInt(args[1]);
 
     try {
       SSLSocketFactory factory = (SSLSocketFactory)SSLSocketFactory.getDefault();
