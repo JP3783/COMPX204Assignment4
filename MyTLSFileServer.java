@@ -2,10 +2,11 @@
 //ID: 1620107
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.OutputStream;
 import java.security.KeyStore;
 import javax.net.ServerSocketFactory;
 import javax.net.ssl.KeyManagerFactory;
@@ -62,24 +63,61 @@ public class MyTLSFileServer {
          
          System.out.println("Server is listening on port 50202...");
 
-         //Accept an incoming connection
-         SSLSocket s = (SSLSocket)ss.accept();
+         while(true){
+            //Accept an incoming connection
+            SSLSocket s = (SSLSocket)ss.accept();
+            handleClient(s);
+         }
          
-         //Force TLS handshake
-         BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-         PrintWriter out = new PrintWriter(new OutputStreamWriter(s.getOutputStream()));
+         // //Force TLS handshake
+         // BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+         // PrintWriter out = new PrintWriter(new OutputStreamWriter(s.getOutputStream()));
 
-         String line = in.readLine();
-         System.out.println("Received: " + line);
-         out.println("Hello, TLS Client!!!");
+         // String line = in.readLine();
+         // System.out.println("Received: " + line);
+         // out.println("Hello, TLS Client!!!");
 
-         out.flush();
-         in.close();
-         out.close();
-         s.close();
-         ss.close();
+         // out.flush();
+         // in.close();
+         // out.close();
+         // s.close();
+         // ss.close();
       } catch (Exception e) {
          e.printStackTrace();
+      }
+   }
+
+   private static void handleClient(SSLSocket socket){
+      try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+         OutputStream out = socket.getOutputStream()){
+
+         String filename = in.readLine();
+         File file = new File(filename);
+
+         if(!file.exists() || file.isDirectory()){
+            System.out.println("Requested file does not exist or is a directory. Closing connection.");
+            socket.close();
+            return;
+         }
+
+         //Send file content to the client
+         byte[] buffer = new byte[4096];
+         try(FileInputStream fileIn = new FileInputStream(file)){
+            int bytesRead;
+            while((bytesRead = fileIn.read(buffer)) != -1){
+               out.write(buffer, 0, bytesRead);
+            }
+         }
+
+         System.out.println("File " + filename + " sent to client.");
+      } catch(IOException e){
+         e.printStackTrace();
+      } finally{
+         try{
+            socket.close();
+         } catch(IOException e){
+            e.printStackTrace();
+         }
       }
    }
 }

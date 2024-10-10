@@ -7,8 +7,8 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.security.cert.X509Certificate;
 import javax.naming.ldap.LdapName;
@@ -25,56 +25,93 @@ public class MyTLSFileClient {
     //The server's hostname and port "lab-rg06-05.cms.waikato.ac.nz"   50202
     String host = args[0];
     int port = Integer.parseInt(args[1]);
-    String file = args[2];
+    String fileName = args[2];
 
-    SSLSocket socket = null;
+    try (SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket(host, port)) {
+            SSLParameters params = new SSLParameters();
+            params.setEndpointIdentificationAlgorithm("HTTPS");
+            socket.setSSLParameters(params);
+            socket.setSoTimeout(5000);
 
-    try {
-      SSLSocketFactory factory = (SSLSocketFactory)SSLSocketFactory.getDefault();
-      socket = (SSLSocket)factory.createSocket(host, port);
+            socket.startHandshake(); // explicit TLS handshake
+            System.out.println("Handshake successful!");
 
-      // set HTTPS-style checking of HostName _before_ 
-      // the handshake
-      SSLParameters params = new SSLParameters();
-      params.setEndpointIdentificationAlgorithm("HTTPS"); //Enables hostname validation
-      socket.setSSLParameters(params);
+            try (PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                 InputStream in = socket.getInputStream()) {
 
-      //Set a timeout
-      socket.setSoTimeout(5000);
+                out.println(fileName); // Send the filename to the server
 
-      socket.startHandshake(); // explicitly starting the TLS handshake
-      System.out.println("Handshake successful!");
+                // Create the output file with an underscore prefix
+                String outputFileName = "_" + fileName;
+                try (FileOutputStream fileOut = new FileOutputStream(outputFileName)) {
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        fileOut.write(buffer, 0, bytesRead);
+                    }
+                }
 
-      // Perform I/O after the handshake (communicating with the server)
-      try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-      PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+                System.out.println("File received and saved as " + outputFileName);
+            }
 
-        // Send the file name to the server
-        out.println(file);
-
-        // Read and print the server's response
-        String response = in.readLine();
-        if (response != null) {
-            System.out.println("Received from server: " + response);
-        } else {
-            System.out.println("No response received from the server.");
+            // Get the server's certificate and verify the hostname
+            SSLSession session = socket.getSession();
+            X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0];
+            String serverCN = getCommonName(cert);
+            System.out.println("Server CN: " + serverCN);
+            if (!host.equalsIgnoreCase(serverCN)) {
+                throw new SSLException("Hostname verification failed!");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-      }
 
-      // get the X509Certificate for this session
-      SSLSession session = socket.getSession();
-      X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0];
+    // try {
+    //   SSLSocketFactory factory = (SSLSocketFactory)SSLSocketFactory.getDefault();
+    //   socket = (SSLSocket)factory.createSocket(host, port);
 
-      // extract the CommonName, and then compare
-      String serverCN = getCommonName(cert);
-      System.out.println("Server CN: " + serverCN);
+    //   // set HTTPS-style checking of HostName _before_ 
+    //   // the handshake
+    //   SSLParameters params = new SSLParameters();
+    //   params.setEndpointIdentificationAlgorithm("HTTPS"); //Enables hostname validation
+    //   socket.setSSLParameters(params);
 
-      if (!host.equalsIgnoreCase(serverCN)) {
-        throw new SSLException("Hostname verification failed!");
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    //   //Set a timeout
+    //   socket.setSoTimeout(5000);
+
+    //   socket.startHandshake(); // explicitly starting the TLS handshake
+    //   System.out.println("Handshake successful!");
+
+    //   // Perform I/O after the handshake (communicating with the server)
+    //   try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    //   PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+
+    //     // Send the file name to the server
+    //     out.println(file);
+
+    //     // Read and print the server's response
+    //     String response = in.readLine();
+    //     if (response != null) {
+    //         System.out.println("Received from server: " + response);
+    //     } else {
+    //         System.out.println("No response received from the server.");
+    //     }
+    //   }
+
+    //   // get the X509Certificate for this session
+    //   SSLSession session = socket.getSession();
+    //   X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0];
+
+    //   // extract the CommonName, and then compare
+    //   String serverCN = getCommonName(cert);
+    //   System.out.println("Server CN: " + serverCN);
+
+    //   if (!host.equalsIgnoreCase(serverCN)) {
+    //     throw new SSLException("Hostname verification failed!");
+    //   }
+    // } catch (Exception e) {
+    //   e.printStackTrace();
+    // }
   }
 
   public static String getCommonName(X509Certificate cert) throws Exception{
