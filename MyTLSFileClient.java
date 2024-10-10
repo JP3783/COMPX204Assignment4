@@ -1,12 +1,5 @@
-// The client is usually much more straight forward
-// Defaults will load Java’s set of Trusted Certificates
-// Java will validate there is a path to a trusted CA
-// By default, Java will NOT do hostname validation,
-// but the more secure thing to do is to check!
-
-// THE CODE BELOW IS INCOMPLETE AND HAS PROBLEMS
-// FOR EXAMPLE, IT IS MISSING THE NECESSARY EXCEPTION HANDLING
-
+//Name: Justin Poutoa
+//ID: 1620107
 
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
@@ -67,7 +60,7 @@ public class MyTLSFileClient {
             System.out.println("No response received from the server.");
         }
       }
-      
+
       // get the X509Certificate for this session
       SSLSession session = socket.getSession();
       X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0];

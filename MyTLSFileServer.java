@@ -1,25 +1,5 @@
-// Java provides SSLSocket and SSLServerSocket classes, which are roughly 
-// equivalent to Socket and ServerSocket:
-//       SSLServerSocket listens on a port for incoming connections, like ServerSocket
-//       SSLSocket connects to an SSLServerSocket, like Socket, and represents an individual 
-//       connection accepted from an SSLServerSocket.
-// To create a SSLSocket or SSLServerSocket, we must use "factories"
-
-// Socket factories are a convenient way to set TLS parameters that will 
-// apply to Sockets created from the factory, e.g:
-//       Which TLS versions to support
-//       Which Ciphers and Hashes to use
-//       Which Keys to use and which Certificates to trust
-// As you might guess by the names
-//       SSLServerSocketFactory creates SSLServerSocket objects
-//       SSLSocketFactory creates SSLSocket objects
-
-// Java uses KeyStore objects to store Keys and Certificates
-// A KeyStore object is used when encrypting and authenticating
-// The files that contain Keys and Certificates are password protected
-
-// THE CODE BELOW IS INCOMPLETE AND HAS PROBLEMS
-// FOR EXAMPLE, IT IS MISSING THE NECESSARY EXCEPTION HANDLING
+//Name: Justin Poutoa
+//ID: 1620107
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -103,5 +83,3 @@ public class MyTLSFileServer {
       }
    }
 }
-
-
