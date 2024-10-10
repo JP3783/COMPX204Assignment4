@@ -63,37 +63,30 @@ public class MyTLSFileServer {
          
          System.out.println("Server is listening on port 50202...");
 
+         //Continuosly accept client connections
          while(true){
             //Accept an incoming connection
             SSLSocket s = (SSLSocket)ss.accept();
             handleClient(s);
          }
-         
-         // //Force TLS handshake
-         // BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-         // PrintWriter out = new PrintWriter(new OutputStreamWriter(s.getOutputStream()));
-
-         // String line = in.readLine();
-         // System.out.println("Received: " + line);
-         // out.println("Hello, TLS Client!!!");
-
-         // out.flush();
-         // in.close();
-         // out.close();
-         // s.close();
-         // ss.close();
       } catch (Exception e) {
          e.printStackTrace();
       }
    }
 
+   /**
+    * Method to handle communication with the connected client.
+    * @param socket the socket used to communicate with client
+    */
    private static void handleClient(SSLSocket socket){
       try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
          OutputStream out = socket.getOutputStream()){
 
+         //Read the requested file from the client
          String filename = in.readLine();
-         File file = new File(filename);
+         File file = new File(filename); //creating a file object for it
 
+         //Checks if the file exists; if not, close the connection as per instructions.
          if(!file.exists() || file.isDirectory()){
             System.out.println("Requested file does not exist or is a directory. Closing connection.");
             socket.close();
@@ -101,9 +94,10 @@ public class MyTLSFileServer {
          }
 
          //Send file content to the client
-         byte[] buffer = new byte[4096];
+         byte[] buffer = new byte[4096]; //buffer to hold the chunks of data
          try(FileInputStream fileIn = new FileInputStream(file)){
             int bytesRead;
+            //Read and send the file in chunks and write to output
             while((bytesRead = fileIn.read(buffer)) != -1){
                out.write(buffer, 0, bytesRead);
             }
