@@ -24,7 +24,7 @@ import javax.naming.ldap.Rdn;
 public class MyTLSFileClient {
   public static void main(String args[])
   {
-    if(args.length != 2){
+    if(args.length < 3){
       System.out.println("Usage = java MyTLSFileClient <hostname> <portnumber> <filename>");
       return;
     }
@@ -32,10 +32,13 @@ public class MyTLSFileClient {
     //The server's hostname and port "lab-rg06-05.cms.waikato.ac.nz"   50202
     String host = args[0];
     int port = Integer.parseInt(args[1]);
+    String file = args[2];
+
+    SSLSocket socket = null;
 
     try {
       SSLSocketFactory factory = (SSLSocketFactory)SSLSocketFactory.getDefault();
-      SSLSocket socket = (SSLSocket)factory.createSocket(host, port);
+      socket = (SSLSocket)factory.createSocket(host, port);
 
       // set HTTPS-style checking of HostName _before_ 
       // the handshake
@@ -43,16 +46,28 @@ public class MyTLSFileClient {
       params.setEndpointIdentificationAlgorithm("HTTPS"); //Enables hostname validation
       socket.setSSLParameters(params);
 
+      //Set a timeout
+      socket.setSoTimeout(5000);
+
       socket.startHandshake(); // explicitly starting the TLS handshake
+      System.out.println("Handshake successful!");
 
-      //Perform I/O after the handshake (input/output)
+      // Perform I/O after the handshake (communicating with the server)
       try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-          out.println("Hello, TLS Server!!!");
-          String response = in.readLine();
-          System.out.println("Received from server: " + response);
-        }
+      PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
+        // Send the file name to the server
+        out.println(file);
+
+        // Read and print the server's response
+        String response = in.readLine();
+        if (response != null) {
+            System.out.println("Received from server: " + response);
+        } else {
+            System.out.println("No response received from the server.");
+        }
+      }
+      
       // get the X509Certificate for this session
       SSLSession session = socket.getSession();
       X509Certificate cert = (X509Certificate) session.getPeerCertificates()[0];

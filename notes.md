@@ -24,7 +24,7 @@ CERTIFICATE FINGERPRINT: 05:D1:FD:53:67:85:13:99:61:BB:2D:E9:C2:23:3D:F5:BE:4F:5
 ## Step 4
 
 F: The exception from the first command:
-
+javax.net.ssl.SSLHandshakeException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
 
 G: The exception from the second command:
-
+javax.net.ssl.SSLHandshakeException: No name matching localhost found
